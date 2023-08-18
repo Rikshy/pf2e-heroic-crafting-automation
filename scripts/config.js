@@ -18,21 +18,21 @@ Hooks.on(
             type: Number,
         });
 
-        game.settings.register(MODULE_NAME, "daysInAWeek", {
-            name: localise("Config.DaysInAWeek.Name"),
-            hint: localise("Config.DaysInAWeek.Hint"),
-            scope: "world",
-            config: true,
-            default: 5,
-            type: Number,
-        });
-
         game.settings.register(MODULE_NAME, "scaleWithBatchSize", {
             name: localise("Config.ScaleWithBatchSize.Name"),
             hint: localise("Config.ScaleWithBatchSize.Hint"),
             scope: "world",
             config: true,
-            default: 5,
+            default: false,
+            type: Boolean,
+        });
+
+        game.settings.register(MODULE_NAME, "disableRegularCrafting", {
+            name: localise("Config.DisableRegularCrafting.Name"),
+            hint: localise("Config.DisableRegularCrafting.Hint"),
+            scope: "world",
+            config: true,
+            default: false,
             type: Boolean,
         });
 
@@ -80,6 +80,11 @@ Hooks.on("renderCharacterSheetPF2e", async (data, html) => {
         const formulaItems = formulas.find(".formula-item");
         const itemControls = formulaItems.find(".item-controls");
 
+        const disableRegularCrafting = game.settings.get(MODULE_NAME, "disableRegularCrafting");
+        if (disableRegularCrafting) {
+            itemControls.children().first().remove();
+        }
+
         itemControls.prepend(`<a class="item-control" title="${localise("CharSheet.BeginProject")}" data-action="heroic-crafting-begin-project"><i class="fa-solid fa-fw fa-scroll"></i></a>`);
 
         itemControls.find("a[data-action=heroic-crafting-begin-project]").on("click", async (event) => {
@@ -104,7 +109,7 @@ Hooks.on("renderCharacterSheetPF2e", async (data, html) => {
         const craftingEntries = craftingTab.find(".craftingEntry-list");
         const projects = await getProjectsToDisplay(data.actor);
 
-        const template = await renderTemplate(`modules/${MODULE_NAME}/templates/projects.hbs`, { projects, editable: data.isEditable });
+        const template = await renderTemplate(`modules/${MODULE_NAME}/templates/projects.hbs`, { projects, editable: data.isEditable, allowEdit: game.user.isGM });
         craftingEntries.append(template);
     }
     {

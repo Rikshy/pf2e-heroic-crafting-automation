@@ -35,27 +35,26 @@ export const HeroicCraftingGatheredIncome = [
 /**
  * Calculates the appropriate spending limit for a level.
  * 
- * @param {"hour"|"day"|"week"} spendingLimitDuration The duration of the crafting activity to calculate the spending limit for.
+ * @param {number} spendingLimitDuration The duration of the crafting activity to calculate the spending limit for.
+ * @param {"hour"|"day"} spendingLimitDurationType The duration of the crafting activity to calculate the spending limit for.
  * @param {number} level The level at which the activity is performed.
  * @returns {game.pf2e.Coins} A Coins object of the appropriate spending limit.
  */
-export function spendingLimit(spendingLimitDuration, level) {
+export function spendingLimit(spendingLimitDuration, spendingLimitDurationType, level) {
     if (level <= 0 || level >= 21) {
         return new game.pf2e.Coins();
     }
 
     let hourlyLimit = game.pf2e.Coins.fromString(HeroicCraftingHourlySpendingLimit[level - 1]);
+    let limit = hourlyLimit.scale(spendingLimitDuration);
 
     const dayMultiplier = game.settings.get(MODULE_NAME, "hoursInADay") || 4;
-    const weekMultiplier = game.settings.get(MODULE_NAME, "daysInAWeek") || 5;
 
-    switch (spendingLimitDuration.toUpperCase()) {
+    switch (spendingLimitDurationType.toUpperCase()) {
         case "HOUR":
-            return hourlyLimit;
+            return normaliseCoins(limit.copperValue);
         case "DAY":
-            return normaliseCoins(hourlyLimit.scale(dayMultiplier).copperValue);
-        case "WEEK":
-            return normaliseCoins(hourlyLimit.scale(dayMultiplier).scale(weekMultiplier).copperValue);
+            return normaliseCoins(limit.scale(dayMultiplier).copperValue);
         default:
             return new game.pf2e.Coins();
     }
@@ -64,14 +63,15 @@ export function spendingLimit(spendingLimitDuration, level) {
 /**
  * Calculates the appropriate max costs considering duration, level, batch size and other multipliers.
  * 
- * @param {"hour"|"day"|"week"} spendingLimitDuration The duration of the crafting activity to calculate the spending limit for.
+ * @param {number} duration The duration of the crafting activity to calculate the spending limit for.
+ * @param {"hour"|"day"} durationType The durationType of the crafting activity to calculate the spending limit for.
  * @param {number} level The level at which the activity is performed.
  * @param {number} batchSize Size of the batch thats being crafted.
  * @param {number} multipliers Other multipliers.
  * @returns {game.pf2e.Coins} A Coins object of the appropriate spending limit.
  */
-export function calculateMaxCost(duration, level, batchSize, multipliers) {
-    let maxCost = spendingLimit(duration, level);
+export function calculateMaxCost(duration, durationType, level, batchSize, multipliers) {
+    let maxCost = spendingLimit(duration, durationType, level);
 
     const scaleWithBatch = game.settings.get(MODULE_NAME, "scaleWithBatchSize");
 

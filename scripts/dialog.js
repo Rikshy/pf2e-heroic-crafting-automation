@@ -181,41 +181,43 @@ export async function projectCraftDialog(actor, itemDetails) {
     return await Dialog.wait({
         title: localise("CraftWindow.Title"),
         content: `
-        <form>
-                    <body>
-                        <section>
-                            <h1>${localise("CraftWindow.Title")}</h1>
-                        </section>
-                        <section>
-                            ${localise("ProjectManagement.CurrentProject")}: <strong>${item.name}</strong>
-                        </section>
-                        <section>
+            <form>
+                <body>
+                    <section>
+                        <h1>${localise("CraftWindow.Title")}</h1>
+                    </section>
+                    <section>
+                        ${localise("ProjectManagement.CurrentProject")}: <strong>${item.name}</strong>
+                    </section>
+                    <section>
                         ${localise("ProjectManagement.RemainingMaterials")} / ${localise("ProjectManagement.MaximumCost")}: <span id="spanNotOverspending"><strong id="remainingMaterials">0 gp</strong> / <strong id="maxCost">0 gp</strong></span><span id="spanOverspending" hidden><strong style="color: red">${localise("ProjectManagement.OverspendingWarning")}</strong></span>
-                        </section>
-                    </body>
-                    <div class="form-group">
-                        <label for="spendingAmount">${localise("ProjectManagement.SpentMaterialsSoFar")}</label>
-                        <input type="text" id="spendingAmount" name="spendingAmount" placeholder="0 gp">
-                    </div>
-                    <div class="form-group">
-                        <label for="craftDuration">${localise("CraftWindow.CraftingDuration.Title")}</label>
-                        <select autofocus id="craftDuration" name="craftDuration">
+                    </section>
+                </body>
+                <div class="form-group">
+                    <label for="spendingAmount">${localise("ProjectManagement.SpentMaterialsSoFar")}</label>
+                    <input type="text" id="spendingAmount" name="spendingAmount" placeholder="0 gp">
+                </div>
+                <div class="form-group">
+                    <label for="craftDuration">${localise("CraftWindow.CraftingDuration.Title")}</label>
+                    <div>
+                        <input type="number" id="craftDuration" name="craftDuration" style="width:49%" value="1" />
+                        <select autofocus id="craftDurationType" name="craftDurationType" style="width:49%">
                             <option value="hour">${localise("CraftWindow.CraftingDuration.Hour")}</option>
                             <option value="day">${localise("CraftWindow.CraftingDuration.Day")}</option>
-                            <option value="week">${localise("CraftWindow.CraftingDuration.Week")}</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="overtimePenalty">${localise("CraftWindow.OvertimePenalty.Title")}</label>
-                        <select id="overtimePenalty" name="overtimePenalty">
-                            <option value=0>${localise("CraftWindow.OvertimePenalty.NoOvertime")}</option>
-                            <option value=-5>-5</option>
-                            <option value=-10> -10</option>
-                        </select>
-                    </div>
-                    ${await getPaymentOptionHTML(getPreferredPayMethod(actor))}
-                    ${extraHTML.join('\n')}
-                </form>
+                </div>
+                <div class="form-group">
+                    <label for="overtimePenalty">${localise("CraftWindow.OvertimePenalty.Title")}</label>
+                    <select id="overtimePenalty" name="overtimePenalty">
+                        <option value=0>${localise("CraftWindow.OvertimePenalty.NoOvertime")}</option>
+                        <option value=-5>-5</option>
+                        <option value=-10>-10</option>
+                    </select>
+                </div>
+                ${await getPaymentOptionHTML(getPreferredPayMethod(actor))}
+                ${extraHTML.join('\n')}
+            </form>
         `,
         buttons: {
             ok: {
@@ -235,6 +237,7 @@ export async function projectCraftDialog(actor, itemDetails) {
 
                     return {
                         duration: $(html).find("#craftDuration")[0].value,
+                        durationType: $(html).find("#craftDurationType")[0].value,
                         overtime: Number($(html).find("#overtimePenalty")[0].value) || 0,
                         payMethod: $(html).find("#payMethod")[0].value,
                         spendingAmount: game.pf2e.Coins.fromString($(html).find("#spendingAmount")[0].value),
@@ -258,20 +261,42 @@ export async function projectCraftDialog(actor, itemDetails) {
             return {};
         },
         render: ([content]) => {
+            function updateSpendingLimit(target, durTyp, dur) {
+                let multipliers = 1;
+                modifiers.forEach((modifier) => {
+                    if (modifier.target === "max" && modifier.active && modifier.mode === "multiply") {
+                        multipliers = multipliers * modifier.amount;
+                    }
+                });
+                
+                let maxInput = 30;
+                if (durTyp.value.toUpperCase() === "HOUR") {
+                    maxInput = game.settings.get(MODULE_NAME, "hoursInADay");
+                }
+
+                if (dur.value > maxInput) {
+                    dur.value = maxInput;
+                }
+
+                const maxCost = calculateMaxCost(dur.value, durTyp.value, actor.level, itemDetails.batchSize, multipliers);
+
+                $(target).parent().parent().parent().find("[id=maxCost]").html(maxCost.toString());
+                target.parentElement.parentElement.parentElement.querySelector("#spendingAmount").dispatchEvent(new Event("keyup"));
+            };
             content
-                .querySelector("[id=craftDuration]")
+                .querySelector("[id=craftDurationType]")
                 .addEventListener("change", (event) => {
-                    let multipliers = 1;
-                    modifiers.forEach((modifier) => {
-                        if (modifier.target === "max" && modifier.active && modifier.mode === "multiply") {
-                            multipliers = multipliers * modifier.amount;
-                        }
-                    });
+                    const dur = $(event.target).parent().find("[id=craftDuration]")[0];
 
-                    const maxCost = calculateMaxCost(event.target.value, actor.level, itemDetails.batchSize, multipliers);
-                    $(event.target).parent().parent().find("[id=maxCost]").html(maxCost.toString());
+                    updateSpendingLimit(event.target, event.target, dur);
+                });
 
-                    event.target.parentElement.parentElement.querySelector("#spendingAmount").dispatchEvent(new Event("keyup"));
+                content
+                .querySelector("[id=craftDuration]")
+                .addEventListener("keyup", (event) => {
+                    const durType = $(event.target).parent().find("[id=craftDurationType]")[0];
+
+                    updateSpendingLimit(event.target, durType, event.target);
                 });
 
             content
@@ -340,7 +365,7 @@ export async function projectCraftDialog(actor, itemDetails) {
                     multipliers = multipliers * modifier.amount;
                 }
             });
-            const maxCost = calculateMaxCost("Hour", actor.level, itemDetails.batchSize, multipliers);
+            const maxCost = calculateMaxCost(1, "Hour", actor.level, itemDetails.batchSize, multipliers);
             content
                 .querySelector("[id=maxCost]").innerHTML = maxCost;
             content
