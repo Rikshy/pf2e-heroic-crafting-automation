@@ -16,6 +16,7 @@
         },
         "CharSheet": {
             "BeginProject": "Begin Project",
+            "EditProject": "Edit Project",
             "ProjectHeader": "Projects",
             "NameCol": "Name",
             "DCCol": "DC",

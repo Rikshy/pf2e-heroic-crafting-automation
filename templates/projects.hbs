@@ -12,6 +12,8 @@
             <div class="formula-dc-header">
                 {{localize "PF2E-HEROIC-CRAFTING-AUTOMATION.CharSheet.DCCol"}}
             </div>
+            <div class="formula-cost-header">
+            </div>
             <div class="formula-quantity-header">
                 {{localize "PF2E-HEROIC-CRAFTING-AUTOMATION.CharSheet.QuantityCol"}}
             </div>
@@ -31,13 +33,15 @@
                 <div class="dc">
                     {{project.DC}}
                 </div>
+                <div class="cost">
+                </div>
                 <div class="quantity">
                     <input type="number" class="number" data-action="enter-quantity" value="{{project.batch}}" readonly />
                 </div>
                 {{#if @root.editable}}
                     <div class="item-controls heroic-crafting-project-controls">
                         <a class="item-control" title="{{localize "PF2E.CraftItemTitle"}}" data-action="project-craft"><i class="fa-solid fa-fw fa-hammer"></i></a>
-                        <a class="item-control" title="{{localize "PF2E.EditItemTitle"}}" data-action="project-edit"><i class="fas fa-edit fa-1x fa-fw"></i></a>
+                        <a class="item-control" title="{{localize "PF2E-HEROIC-CRAFTING-AUTOMATION.CharSheet.EditProject"}}" data-action="project-edit"><i class="fas fa-edit fa-1x fa-fw"></i></a>
                         <a class="item-control" title="{{localize "PF2E.DeleteItemTitle"}}" data-action="project-delete"><i class="fas fa-fw fa-trash"></i></a>
                     </div>
                 {{/if}}

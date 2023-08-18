@@ -25,6 +25,6 @@
 
 #heroic-crafting-projects .item-list .heroic-project-item,
 #heroic-crafting-projects .item-list .heroic-project-header {
-    grid: "name dc quantity controls" 1fr
-    / 4fr 0.7fr 1fr 1fr;
+    grid: "name dc price quantity controls" 1fr
+    / 4fr 0.7fr 1fr 1fr 1fr;
 }
